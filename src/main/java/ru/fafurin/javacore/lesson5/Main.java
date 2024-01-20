@@ -3,130 +3,79 @@ package ru.fafurin.javacore.lesson5;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
-import java.util.Scanner;
-
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        // 1
-        final String filename = "1.txt";
-//        int[] numbers = {1, 4, 43, 6, 2, 5, 0, 1, 9};
-//        printIntArrayToFile(filename, numbers);
+        // 1.
+        createCurrentDirFilesBackup(System.getProperty("user.dir") + "\\tmp");
 
-        // 2
-//        fillIntArrayFromFile(filename);
 
-        // 3
-//        replaceLetterInTextAndSaveToFile("1.txt", "2.txt", "w");
-
-        // 3*
-//        replaceWordInTextAndSaveToFile("1.txt", "2.txt", "one");
-
-        // 4
-//        printFilesFromDir(System.getProperty("user.dir"));
-
-        // 4*
-//        printFilesFromDirs(System.getProperty("user.dir"));
-
-        // 5
-        addPrefixToFile(new String[]{"1.txt", "2.txt"});
+        // 2.
+        encodeAndSaveArrToFile("44.txt", fillArrayWithRandomValuesFrom0To3());
     }
 
 
-    // 1. Создать массив из 9 цифр и записать его в файл, используя поток вывода.
-    private static void printIntArrayToFile(String filename, int[] numbers) {
+    // 1. Написать функцию, создающую резервную копию всех файлов в директории (без
+    // поддиректорий) во вновь созданную папку ./backup
+    private static void createCurrentDirFilesBackup(String path) {
+        File dir = new File(path);
+        try {
+            File[] files = dir.listFiles();
+            if (files.length > 1) {
+                Path backupFolder = Files.createDirectories(Path.of(dir.getAbsolutePath() + "/.backup"));
+                for (File file : files) {
+                    if (file.isFile()) {
+                        Files.copy(file.toPath(),
+                                (new File(backupFolder + "\\" + file.getName())).toPath(),
+                                StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+                System.out.printf("Backup of %s files successfully created", path);
+            } else System.out.printf("There are no files in %s", path);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    // 2. Предположить, что числа в исходном массиве из 9 элементов имеют диапазон [0, 3],
+    // и представляют собой, например, состояния ячеек поля для игры в крестики-
+    // нолики, где 0 – это пустое поле, 1 – это поле с крестиком, 2 – это поле с ноликом,
+    // 3 – резервное значение. Такое предположение позволит хранить в одном числе типа
+    // int всё поле 3х3. Записать в файл 9 значений так, чтобы они заняли три байта.
+
+    private static void encodeAndSaveArrToFile(String filename, int[] numbers) {
         try (FileOutputStream stream = new FileOutputStream(filename)) {
             PrintWriter writer = new PrintWriter(stream);
-            writer.print('[');
-            for (int x = 0; x < numbers.length; x++) {
-                writer.print(numbers[x]);
-                if (x < numbers.length - 1) writer.print(',');
+
+            for (int i = 0; i < 3; i++) {
+                byte res = 0;
+                for (int j = 0; j < 3; j++) {
+                    res += numbers[3 * i + j] << (j * 2);
+                }
+                writer.write(res);
             }
-            writer.print(']');
             writer.close();
+            System.out.printf("The array successfully encoded and saved to file %s \n", filename);
+            printFileSize(filename);
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
     }
-
-    // 2. Создать массив целых чисел и заполнить его информацией из файла, записанного в предыдущем задании.
-    private static void fillIntArrayFromFile(String filename) {
-        int[] res = new int[9];
-
-        try (FileInputStream stream = new FileInputStream(filename)) {
-            Scanner sc = new Scanner(stream);
-            String str = sc.nextLine().replace("[", "").replace("]", "");
-            String[] arr = str.split(",");
-            for (int x = 0; x < arr.length; x++) {
-                res[x] = Integer.parseInt(arr[x]);
-            }
-            System.out.println(Arrays.toString(res));
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
+    private static void printFileSize(String filename) {
+        File file = new File(filename);
+        long size = file.length();
+        System.out.printf("The %s size is %s bytes", file, size);
     }
 
-    // 3. Написать программу заменяющую указанный символ в текстовом файле на пробел, сохраняющую получившийся текст в новый файл.
-    private static void replaceLetterInTextAndSaveToFile(String oldFile, String newFile, String letter) {
-        try (InputStream fileInputStream = new FileInputStream(oldFile)) {
-            String str = new Scanner(fileInputStream).nextLine().replace(letter, " ");
-            FileWriter writer = new FileWriter(newFile);
-            writer.write(str);
-            writer.close();
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
+    private static int[] fillArrayWithRandomValuesFrom0To3() {
+        int[] numbers = new int[9];
+        for (int x = 0; x < numbers.length; x++) {
+            numbers[x] = (int) (Math.random() * 4);
         }
-    }
-
-    // 3*. Модифицировать алгоритм поиска замены символа так, чтобы программа осуществляла замену слова
-    // (последовательного набора символов) в исходном файле и записывала результат в новый файл.
-    private static void replaceWordInTextAndSaveToFile(String oldFile, String newFile, String word) {
-        try (InputStream fileInputStream = new FileInputStream(oldFile)) {
-            String str = new Scanner(fileInputStream).nextLine().replace(word, " ");
-            FileWriter writer = new FileWriter(newFile);
-            writer.write(str);
-            writer.close();
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    // 4. Написать программу, читающую и выводящую в содержимое текущей папки
-    private static void printFilesFromCurrentDir(String path) {
-        File dir = new File(path);
-        File[] files = dir.listFiles();
-        for (File file : files) {
-            if (file.isDirectory()) continue;
-            System.out.println("./" + file.getName());
-        }
-    }
-
-    // 4*. Написать программу таким образом, чтобы она рекурсивно выводила содержимое не только текущей папки,
-    // но и вложенных.
-    private static void printFilesFromDirs(String path) {
-        File dir = new File(path);
-        File[] files = dir.listFiles();
-        for (File file : files) {
-            if (file.isDirectory()) printFilesFromDirs(file.getPath());
-            System.out.println("./" + file.getName());
-        }
-    }
-
-    // 5. Написать функцию, добавляющую префикс к каждому из набора файлов,
-    // названия которых переданы ей в качестве параметров через пробел.
-
-    private static void addPrefixToFile(String[] string) throws IOException {
-        for (String fileName: string) {
-            Path file = Path.of(fileName);
-            if (Files.exists(file)) {
-                Files.move(file, Paths.get("pre_" + file), REPLACE_EXISTING);
-            } else {
-                System.out.println("File not found");
-            }
-        }
+        System.out.println("Array is " + Arrays.toString(numbers));
+        return numbers;
     }
 
 }
